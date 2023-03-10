@@ -1,0 +1,3 @@
+# Ignore mongoDB URI and OPENAI Keys
+.env
+
