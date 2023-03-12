@@ -12,3 +12,8 @@ type OpenAIResponseBody struct {
 		Text string `json:"text"`
 	} `json:"choices"`
 }
+
+type Image struct {
+	ID    string `bson:"_id"`
+	Image []byte `bson:"image"`
+}

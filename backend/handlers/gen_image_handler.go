@@ -1,11 +1,14 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"gopkg.in/mgo.v2/bson"
+	"github.com/BlaynDrew414/dalle_image_app/backend/db"
 )
 
 type GenerateImageRequestBody struct {
@@ -18,7 +21,7 @@ type GenerateImageResponseBody struct {
 
 func GenerateImageHandler(c *gin.Context) {
 	// read request body
-	requestBodyBytes, err := ioutil.ReadAll(c.Request.Body)
+	requestBodyBytes, err := io.ReadAll(c.Request.Body)
 	if err != nil {
 		c.AbortWithError(http.StatusBadRequest, err)
 		return
@@ -39,27 +42,23 @@ func GenerateImageHandler(c *gin.Context) {
 		return
 	}
 
-	// upload image to cloud storage
-	imageUrl, err := UploadImageToCloudStorage(imageBytes)
+	// insert image into MongoDB collection
+	client, err := db.ConnectToDB()
+	if err != nil {
+		c.AbortWithError(http.StatusInternalServerError, err)
+		return
+	}
+	defer client.Disconnect(context.Background())
+
+	collection := client.Database("dalle_image_app").Collection("images")
+	result, err := collection.InsertOne(context.Background(), bson.M{"image": imageBytes})
 	if err != nil {
 		c.AbortWithError(http.StatusInternalServerError, err)
 		return
 	}
 
 	// return response
-	responseBody := GenerateImageResponseBody{ImageUrl: imageUrl}
+	responseBody := GenerateImageResponseBody{ImageUrl: result.InsertedID.(string)}
 	c.JSON(http.StatusOK, responseBody)
 }
 
-func SetupRouter(router *gin.Engine) {
-	router.GET("/", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{
-			"message": "Hello, World!",
-		})
-	})
-
-	api := router.Group("/api")
-	{
-		api.POST("/generate_image", GenerateImageHandler)
-	}
-}

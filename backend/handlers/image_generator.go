@@ -3,7 +3,7 @@ package handlers
 import (
 	"bytes"
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"os"
 
@@ -44,7 +44,7 @@ func GenerateImage(description string) ([]byte, error) {
 	}
 	defer response.Body.Close()
 
-	responseBodyBytes, err := ioutil.ReadAll(response.Body)
+	responseBodyBytes, err := io.ReadAll(response.Body)
 	if err != nil {
 		return nil, err
 	}
@@ -62,7 +62,7 @@ func GenerateImage(description string) ([]byte, error) {
 	}
 	defer imageResponse.Body.Close()
 
-	imageBytes, err := ioutil.ReadAll(imageResponse.Body)
+	imageBytes, err := io.ReadAll(imageResponse.Body)
 	if err != nil {
 		return nil, err
 	}
