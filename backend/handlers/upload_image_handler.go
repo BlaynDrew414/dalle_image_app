@@ -3,47 +3,54 @@ package handlers
 import (
 	"io"
 	"net/http"
-	"os"
+	
+
+	"github.com/BlaynDrew414/dalle_image_app/backend/db/repo"
+	"github.com/BlaynDrew414/dalle_image_app/backend/models"
+	"github.com/gin-gonic/gin"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-func UploadImageHandler(w http.ResponseWriter, r *http.Request) {
-	// Check if request method is POST
-	if r.Method != "POST" {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
+func UploadImageHandler(imageRepo repo.ImageRepository) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// Check if request method is POST
+		if c.Request.Method != "POST" {
+			c.AbortWithStatusJSON(http.StatusMethodNotAllowed, gin.H{"error": "Method not allowed"})
+			return
+		}
 
-	// Parse multipart form
-	err := r.ParseMultipartForm(10 << 20) // 10 MB max file size
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
+		// Parse multipart form
+		err := c.Request.ParseMultipartForm(10 << 20) // 10 MB max file size
+		if err != nil {
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
 
-	// Get file from form
-	file, handler, err := r.FormFile("image")
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-	defer file.Close()
+		// Get file from form
+		file, _, err := c.Request.FormFile("image")
+		if err != nil {
+			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		defer file.Close()
 
-	// Save file to server
-	filePath := "./images/" + handler.Filename
-	f, err := os.OpenFile(filePath, os.O_WRONLY|os.O_CREATE, 0666)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	defer f.Close()
+		// Read file data into memory
+		imageData, err := io.ReadAll(file)
+		if err != nil {
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
 
-	_, err = io.Copy(f, file)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
+		// Create new image record
+		image := &models.Image{ID: primitive.NewObjectID().Hex(), Image: imageData}
 
-	// Return file path
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(filePath))
+		// Save file to database
+		err = imageRepo.InsertImage(image)
+		if err != nil {
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{"message": "Image uploaded successfully", "id": image.ID})
+	}
 }

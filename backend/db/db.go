@@ -14,9 +14,9 @@ import (
 
 // ConnectToDB creates a connection to the MongoDB database
 func ConnectToDB() (*mongo.Client, error) {
-	mongoURI := os.Getenv("MONGO_URI")
+	mongoURI := os.Getenv("MONGODB_URI")
 	if mongoURI == "" {
-		return nil, fmt.Errorf("MONGO_URI environment variable not set")
+		return nil, fmt.Errorf("MONGODB_URI environment variable not set")
 	}
 
 	clientOptions := options.Client().ApplyURI(mongoURI)

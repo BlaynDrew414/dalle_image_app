@@ -6,51 +6,28 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"time"
+	
 
-	"github.com/BlaynDrew414/dalle_image_app/backend/db"
+	"github.com/BlaynDrew414/dalle_image_app/backend/db/repo"
 	"github.com/BlaynDrew414/dalle_image_app/backend/handlers"
-	"github.com/BlaynDrew414/dalle_image_app/backend/repo"
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
+	
+	"github.com/BlaynDrew414/dalle_image_app/backend/db"
 )
 
-func main() {
-	// Get MongoDB connection string from environment variable
-	mongoURI := os.Getenv("MONGODB_URI")
-	if mongoURI == "" {
-		log.Fatal("MONGODB_URI environment variable not set")
-	}
 
-	// Connect to MongoDB
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-	client, err := mongo.Connect(ctx, options.Client().ApplyURI(mongoURI))
+
+func main() {
+	// Get MongoDB connection
+	client, err := db.ConnectToDB()
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer client.Disconnect(ctx)
+	defer client.Disconnect(context.Background())
 
 	// Create a new gin router
-	router := gin.Default()
-
-	// Create a new MongoDB database object
-	db := client.Database("dalle_image_app")
-
-	// Create a new image repository
-	imageRepo := repo.NewImageRepository(db)
-
-	// Add the MongoDB database object to the gin context
-	router.Use(func(c *gin.Context) {
-		c.Set("db", db)
-		c.Next()
-	})
-
-	// Define the routes
-	router.GET("/images", handlers.GenerateImageHandler(imageRepo))
-	router.POST("/images", handlers.UploadImageHandler(imageRepo))
-	router.DELETE("/images/:id", handlers.DeleteImageHandler(imageRepo))
+	router := SetupRouter(client, repo.NewImageRepository(client.Database("dalle_image_app")))
 
 	// Start the server
 	port := os.Getenv("PORT")
@@ -62,4 +39,26 @@ func main() {
 	if err := http.ListenAndServe(addr, router); err != nil {
 		log.Fatal(err)
 	}
+}
+
+func SetupRouter(client *mongo.Client, imageRepo *repo.ImageRepository) *gin.Engine {
+	router := gin.Default()
+
+	// Home route
+	router.GET("/", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{
+			"message": "Welcome to Dall-E API",
+		})
+	})
+
+	// Image upload route
+	router.POST("/api/images", handlers.UploadImageHandler(*imageRepo,))
+
+	// Image deletion route
+	router.DELETE("/api/images/:id", handlers.DeleteImageHandler(imageRepo))
+
+	// Image generation route
+	router.GET("/api/generate", handlers.GenerateImageHandler(imageRepo))
+
+	return router
 }
