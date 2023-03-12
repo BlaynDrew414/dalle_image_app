@@ -7,7 +7,8 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"gopkg.in/mgo.v2/bson"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"github.com/BlaynDrew414/dalle_image_app/backend/db"
 )
 
@@ -58,7 +59,6 @@ func GenerateImageHandler(c *gin.Context) {
 	}
 
 	// return response
-	responseBody := GenerateImageResponseBody{ImageUrl: result.InsertedID.(string)}
+	responseBody := GenerateImageResponseBody{ImageUrl: result.InsertedID.(primitive.ObjectID).Hex()}
 	c.JSON(http.StatusOK, responseBody)
 }
-

@@ -1,13 +1,15 @@
 package db
+
 import (
 	"context"
 	"fmt"
 	"os"
 	"time"
 
+	
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"gopkg.in/mgo.v2/bson"
+
 )
 
 // ConnectToDB creates a connection to the MongoDB database
@@ -37,13 +39,4 @@ func ConnectToDB() (*mongo.Client, error) {
 	return client, nil
 }
 
-
-func InsertImageURL(db *mongo.Database, imageUrl string) error {
-    ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-    defer cancel()
-
-    collection := db.Collection("images")
-    _, err := collection.InsertOne(ctx, bson.M{"url": imageUrl})
-    return err
-}
 

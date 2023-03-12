@@ -3,20 +3,25 @@ package handlers
 import (
 	"net/http"
 
-	"github.com/BlaynDrew414/dalle_image_app/backend/db"
+	"github.com/BlaynDrew414/dalle_image_app/backend/db/repo"
 	"github.com/gin-gonic/gin"
-	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 func DeleteImageHandler(c *gin.Context) {
 	// get id parameter from URL
-	id := c.Param("id")
+	idStr := c.Param("id")
+	id, err := primitive.ObjectIDFromHex(idStr)
+	if err != nil {
+		c.AbortWithError(http.StatusBadRequest, err)
+		return
+	}
 
-	// get database object from context
-	db := c.MustGet("db").(*mongo.Database)
+	// get image repository from context
+	imageRepo := c.MustGet("imageRepo").(*repo.ImageRepository)
 
 	// delete image from database
-	err := db.DeleteImageByID(db,id)
+	err = imageRepo.DeleteImageByID(id.Hex())
 	if err != nil {
 		c.AbortWithError(http.StatusInternalServerError, err)
 		return
@@ -25,5 +30,3 @@ func DeleteImageHandler(c *gin.Context) {
 	// return success response
 	c.JSON(http.StatusOK, gin.H{"message": "Image deleted successfully"})
 }
-
-
