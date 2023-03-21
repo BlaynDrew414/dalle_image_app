@@ -21,14 +21,17 @@ import (
 
 func main() {
 	// Get MongoDB connection
-	client, err := db.ConnectToDB()
+	collection, err := db.ConnectToDB("dalle_image_app")
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer client.Disconnect(context.Background())
+	defer collection.Database().Client().Disconnect(context.Background())
+
+	// Create a new image repository
+	imageRepo := repo.NewImageRepository(collection)
 
 	// Create a new gin router
-	router := SetupRouter(client, repo.NewImageRepository(client.Database("dalle_image_app")))
+	router := SetupRouter(imageRepo)
 
 	// Start the server
 	port := os.Getenv("PORT")
@@ -42,24 +45,3 @@ func main() {
 	}
 }
 
-func SetupRouter(client *mongo.Client, imageRepo *repo.ImageRepository) *gin.Engine {
-	router := gin.Default()
-
-	// Home route
-	router.GET("/", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{
-			"message": "Welcome to Dall-E API",
-		})
-	})
-
-	// Image upload route
-	router.POST("/api/images", handlers.UploadImageHandler(*imageRepo,))
-
-	// Image deletion route
-	router.DELETE("/api/images/:id", handlers.DeleteImageHandler(imageRepo))
-
-	// Image generation route
-	router.GET("/api/generate", handlers.GenerateImageHandler(imageRepo))
-
-	return router
-}
