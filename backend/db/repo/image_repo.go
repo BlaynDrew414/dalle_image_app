@@ -1,13 +1,13 @@
 package repo
 
-
-
 import (
-    "context"
-    "github.com/BlaynDrew414/dalle_image_app/backend/models"
-    "go.mongodb.org/mongo-driver/bson"
-    "go.mongodb.org/mongo-driver/mongo"
-    "go.mongodb.org/mongo-driver/mongo/options"
+	"context"
+	"fmt"
+
+	"github.com/BlaynDrew414/dalle_image_app/backend/models"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type ImageRepository struct {
@@ -29,6 +29,9 @@ func (r *ImageRepository) GetImageByID(id string) (*models.Image, error) {
     var image models.Image
     err := r.Collection.FindOne(context.Background(), bson.M{"_id": id}).Decode(&image)
     if err != nil {
+        if err == mongo.ErrNoDocuments {
+            return nil, r.ErrImageNotFound()
+        }
         return nil, err
     }
     return &image, nil
@@ -59,4 +62,9 @@ func (r *ImageRepository) GetImages(limit int64, skip int64) ([]models.Image, er
         return nil, err
     }
     return images, nil
+}
+
+
+func (r *ImageRepository) ErrImageNotFound() error {
+    return fmt.Errorf("Image not found")
 }
