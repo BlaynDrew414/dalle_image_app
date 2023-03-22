@@ -12,40 +12,36 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-// ConnectToDB creates a connection to the MongoDB database
+// ConnectToDB creates a connection to the MongoDB database and returns the specified collection
 func ConnectToDB(collectionName string) (*mongo.Collection, error) {
-    err := godotenv.Load()
-    if err != nil {
-        log.Fatal("Error loading .env file")
-    }
-    mongoURI := os.Getenv("MONGODB_URI")
-    if mongoURI == "" {
-        return nil, fmt.Errorf("MONGODB_URI environment variable not set")
-    }
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
+	mongoURI := os.Getenv("MONGODB_URI")
+	if mongoURI == "" {
+		return nil, fmt.Errorf("MONGODB_URI environment variable not set")
+	}
 
-    clientOptions := options.Client().ApplyURI(mongoURI)
+	clientOptions := options.Client().ApplyURI(mongoURI)
 
-    // connect to db
-    client, err := mongo.Connect(context.Background(), clientOptions)
-    if err != nil {
-        return nil, err
-    }
+	// connect to db
+	client, err := mongo.Connect(context.Background(), clientOptions)
+	if err != nil {
+		return nil, err
+	}
 
-    ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-    defer cancel()
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
 
-    // check connection
-    err = client.Ping(ctx, nil)
-    if err != nil {
-        return nil, err
-    }
+	// check connection
+	err = client.Ping(ctx, nil)
+	if err != nil {
+		return nil, err
+	}
 
-    // select database and collection
-    db := client.Database("dalle_image_app")
-    collection := db.Collection(collectionName)
+	// select database and collection
+	collection := client.Database("dalle_image_app").Collection("images")
 
-    return collection, nil
+	return collection, nil
 }
-
-
-

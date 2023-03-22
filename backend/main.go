@@ -9,10 +9,8 @@ import (
 	
 
 	"github.com/BlaynDrew414/dalle_image_app/backend/db/repo"
-	"github.com/BlaynDrew414/dalle_image_app/backend/handlers"
-	"github.com/gin-gonic/gin"
-	"go.mongodb.org/mongo-driver/mongo"
-	
+
+
 
 	"github.com/BlaynDrew414/dalle_image_app/backend/db"
 )
@@ -28,7 +26,7 @@ func main() {
 	defer collection.Database().Client().Disconnect(context.Background())
 
 	// Create a new image repository
-	imageRepo := repo.NewImageRepository(collection)
+	imageRepo := repo.NewImageRepository(collection.Database())
 
 	// Create a new gin router
 	router := SetupRouter(imageRepo)
