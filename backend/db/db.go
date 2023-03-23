@@ -13,7 +13,7 @@ import (
 )
 
 // ConnectToDB creates a connection to the MongoDB database and returns the specified collection
-func ConnectToDB(collectionName string) (*mongo.Collection, error) {
+func ConnectToDB() (*mongo.Client, error) {
 	err := godotenv.Load()
 	if err != nil {
 		log.Fatal("Error loading .env file")
@@ -40,8 +40,6 @@ func ConnectToDB(collectionName string) (*mongo.Collection, error) {
 		return nil, err
 	}
 
-	// select database and collection
-	collection := client.Database("dalle_image_app").Collection("images")
-
-	return collection, nil
+	return client, nil
 }
+

@@ -46,14 +46,15 @@ func GenerateImageHandler(imageRepo *repo.ImageRepository) gin.HandlerFunc {
 		}
 
 		// insert image into MongoDB collection
-		client, err := db.ConnectToDB("images")
+		client, err := db.ConnectToDB()
 		if err != nil {
 			c.AbortWithError(http.StatusInternalServerError, err)
 			return
 		}
 		defer client.Disconnect(context.Background())
 
-		result, err := client.InsertOne(context.Background(), bson.M{"image": imageBytes})
+		collection := client.Database("dalle_image_app").Collection("images")
+		result, err := collection.InsertOne(context.Background(), bson.M{"image": imageBytes})
 		if err != nil {
 			c.AbortWithError(http.StatusInternalServerError, err)
 			return
@@ -65,3 +66,4 @@ func GenerateImageHandler(imageRepo *repo.ImageRepository) gin.HandlerFunc {
 
 	}
 }
+
