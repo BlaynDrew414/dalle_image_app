@@ -25,7 +25,7 @@ func main() {
     imageRepo := repo.NewImageRepository(db)
 
     // Create a new gin router
-    router := handlers.SetupRouter(imageRepo)
+    router := handlers.SetupRouter(imageRepo.Collection)
 
     // Start the server
     port := os.Getenv("PORT")
@@ -38,4 +38,3 @@ func main() {
         log.Fatal(err)
     }
 }
-

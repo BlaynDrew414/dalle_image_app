@@ -6,23 +6,17 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-func SetupRouter(client *mongo.Client) *gin.Engine {
-	router := gin.Default()
+func SetupRouter(imageCollection *mongo.Collection) *gin.Engine {
+    r := gin.Default()
 
-	// Home route
+    // Define API routes
+    api := r.Group("/api")
+    {
+        api.POST("/images", func(c *gin.Context) { GenerateImage(c, imageCollection) })
+        api.GET("/images/:id", func(c *gin.Context) { getImageByID(c, imageCollection) })
+        api.DELETE("/images/:id", func(c *gin.Context) { deleteImageByID(c, imageCollection) })
+        api.GET("/images", func(c *gin.Context) { getImages(c, imageCollection) })
+    }
 
-	// Image upload route
-	router.POST("/api/images", func(c *gin.Context) {
-		// Handle image upload and database operations using the `db` object
-	})
-
-	// Image retrieval route
-	router.GET("/api/images/:id", func(c *gin.Context) {
-		// Handle image retrieval using the `db` object
-	})
-
-	router.DELETE("/api/images/:id", )
-
-
-	return router
+    return r
 }
