@@ -1,22 +1,22 @@
-package handlers 
+package handlers
 
 import (
-	
+	"github.com/BlaynDrew414/dalle_image_app/backend/db/repo"
 	"github.com/gin-gonic/gin"
-	"go.mongodb.org/mongo-driver/mongo"
+	
 )
 
-func SetupRouter(imageCollection *mongo.Collection) *gin.Engine {
-    r := gin.Default()
+func SetupRouter(imageRepo *repo.ImageRepository) *gin.Engine {
+	r := gin.Default()
 
-    // Define API routes
-    api := r.Group("/api")
-    {
-        api.POST("/images", func(c *gin.Context) { GenerateImage(c, imageCollection) })
-        api.GET("/images/:id", func(c *gin.Context) { getImageByID(c, imageCollection) })
-        api.DELETE("/images/:id", func(c *gin.Context) { deleteImageByID(c, imageCollection) })
-        api.GET("/images", func(c *gin.Context) { getImages(c, imageCollection) })
-    }
+	// Define API routes
+	api := r.Group("/api")
+	{
+		api.POST("/generate-image", GenerateImageHandler(imageRepo))
+		api.GET("/images/:id", GetImageHandler(imageRepo))
+		api.DELETE("/images/:id", DeleteImageHandler(imageRepo))
+		
+	}
 
-    return r
+	return r
 }

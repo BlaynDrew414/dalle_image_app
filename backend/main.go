@@ -6,9 +6,10 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 
-	"github.com/BlaynDrew414/dalle_image_app/backend/db/repo"
 	"github.com/BlaynDrew414/dalle_image_app/backend/db"
+	"github.com/BlaynDrew414/dalle_image_app/backend/db/repo"
 	"github.com/BlaynDrew414/dalle_image_app/backend/handlers"
 )
 
@@ -21,11 +22,19 @@ func main() {
     defer client.Disconnect(context.Background())
     db := client.Database("dalle_image_app")
 
+    // Ping the Mongo database
+    ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := client.Ping(ctx, nil); err != nil {
+		log.Fatal(err)
+	}
+	log.Println("######## Connected to MongoDB ########")
+
     // Create a new image repository
     imageRepo := repo.NewImageRepository(db)
 
     // Create a new gin router
-    router := handlers.SetupRouter(imageRepo.Collection)
+    router := handlers.SetupRouter(imageRepo)
 
     // Start the server
     port := os.Getenv("PORT")

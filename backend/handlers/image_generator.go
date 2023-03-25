@@ -3,69 +3,80 @@ package handlers
 import (
 	"bytes"
 	"encoding/json"
-	"io"
+	"io/ioutil"
 	"net/http"
 	"os"
-
-	"github.com/BlaynDrew414/dalle_image_app/backend/models"
-	"github.com/sethgrid/pester"
 )
 
-func GenerateImage(description string) ([]byte, error) {
-	openaiURL := "https://api.openai.com/v1/engines/davinci/images/generate"
+type GenerateRequest struct {
+	Model     string `json:"model"`
+	Prompt    string `json:"prompt"`
+	NumImages int    `json:"num_images"`
+	Size      string `json:"size"`
+}
 
-	openaiRequestBody := models.OpenAIRequestBody{
-		Model:     "image-alpha-001",
-		Prompt:    "Generate image of " + description,
-		MaxTokens: 1024,
-		Temperature: 0.5,
+type GenerateResponse struct {
+	ImageURL string `json:"image_url"`
+}
+
+func GenerateImage(prompt string) (string, error) {
+	// Create a new GenerateRequest with the necessary fields
+	req := GenerateRequest{
+		Model:     os.Getenv("MODEL_ID"),
+		Prompt:    prompt,
+		NumImages: 1,
+		Size:      "512x512",
 	}
 
-	requestBodyBytes, err := json.Marshal(openaiRequestBody)
+	// Marshal the request to JSON
+	reqBody, err := json.Marshal(req)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
-	request, err := http.NewRequest("POST", openaiURL, bytes.NewBuffer(requestBodyBytes))
+	// Create a new HTTP request
+	reqURL := "https://api.openai.com/v1/images/generations"
+	reqMethod := "POST"
+	reqHeaders := map[string]string{
+		"Content-Type":  "application/json",
+		"Authorization": "Bearer " + os.Getenv("OPENAI_API_KEY"),
+	}
+	reqBodyReader := bytes.NewReader(reqBody)
+
+	httpReq, err := http.NewRequest(reqMethod, reqURL, reqBodyReader)
 	if err != nil {
-		return nil, err
+		return "", err
+	}
+	for k, v := range reqHeaders {
+		httpReq.Header.Set(k, v)
 	}
 
-	request.Header.Set("Content-Type", "application/json")
-	apiKey := os.Getenv("OPENAI_API_KEY")
-	if apiKey != "" {
-		request.Header.Set("Authorization", "Bearer "+apiKey)
-	}
-
-	client := pester.New()
-	response, err := client.Do(request)
+	// Send the HTTP request
+	client := &http.Client{}
+	resp, err := client.Do(httpReq)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
-	defer response.Body.Close()
+	defer resp.Body.Close()
 
-	responseBodyBytes, err := io.ReadAll(response.Body)
+	// Read the HTTP response body
+	respBody, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
-	var openaiResponseBody models.OpenAIResponseBody
-	err = json.Unmarshal(responseBodyBytes, &openaiResponseBody)
-	if err != nil {
-		return nil, err
+	// Unmarshal the response JSON to a GenerateResponse struct
+	var respData struct {
+		Data struct {
+			Images []struct {
+				URL string `json:"url"`
+			} `json:"images"`
+		} `json:"data"`
 	}
-
-	imageUrl := openaiResponseBody.Choices[0].Text
-	imageResponse, err := http.Get(imageUrl)
-	if err != nil {
-		return nil, err
+	if err := json.Unmarshal(respBody, &respData); err != nil {
+		return "", err
 	}
-	defer imageResponse.Body.Close()
+	imageURL := respData.Data.Images[0].URL
 
-	imageBytes, err := io.ReadAll(imageResponse.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	return imageBytes, nil
+	return imageURL, nil
 }
