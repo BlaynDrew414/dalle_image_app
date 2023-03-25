@@ -15,7 +15,7 @@ func SetupRouter(imageRepo *repo.ImageRepository) *gin.Engine {
 		api.POST("/generate-image", GenerateImageHandler(*imageRepo))
 		api.GET("/image/:id", GetImageHandler(imageRepo))
         r.GET("/images", GetAllImagesHandler(imageRepo))
-		api.DELETE("/images/:id", DeleteImageHandler(imageRepo))
+		api.DELETE("/delete/:id", DeleteImageHandler(*imageRepo))
 		
 	}
 

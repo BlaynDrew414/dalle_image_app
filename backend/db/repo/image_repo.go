@@ -6,6 +6,7 @@ import (
 
 	"github.com/BlaynDrew414/dalle_image_app/backend/models"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -38,7 +39,7 @@ func (r *ImageRepository) GetImageByID(id string) (*models.Image, error) {
 	return &image, nil
 }
 
-func (r *ImageRepository) DeleteImageByID(id string) error {
+func (r *ImageRepository) DeleteImageByID(id primitive.ObjectID) error {
 	_, err := r.Collection.DeleteOne(context.Background(), bson.M{"_id": id})
 	return err
 }

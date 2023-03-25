@@ -8,27 +8,31 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-func DeleteImageHandler(imageRepo *repo.ImageRepository) gin.HandlerFunc {
+func DeleteImageHandler(imageRepo repo.ImageRepository) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// get id parameter from URL
-		idStr := c.Param("id")
-		id, err := primitive.ObjectIDFromHex(idStr)
+		// Get image ID from request parameter
+		idString := c.Param("id")
+		id, err := primitive.ObjectIDFromHex(idString)
 		if err != nil {
-			c.AbortWithError(http.StatusBadRequest, err)
+			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Invalid image ID"})
 			return
 		}
 
-		// get image repository from context
-		imageRepo := c.MustGet("imageRepo").(*repo.ImageRepository)
-
-		// delete image from database
-		err = imageRepo.DeleteImageByID(id.Hex())
+		// Delete image from database
+		err = imageRepo.DeleteImageByID(id)
 		if err != nil {
-			c.AbortWithError(http.StatusInternalServerError, err)
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
 
-		// return success response
+		// Return success message
 		c.JSON(http.StatusOK, gin.H{"message": "Image deleted successfully"})
 	}
 }
+
+
+
+
+
+
+
