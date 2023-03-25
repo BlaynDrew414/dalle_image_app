@@ -43,7 +43,7 @@ func (r *ImageRepository) DeleteImageByID(id string) error {
 	return err
 }
 
-func (r *ImageRepository) GetImages(limit int64, skip int64) ([]models.Image, error) {
+func (r *ImageRepository) GetALLImages(limit int64, skip int64) ([]models.Image, error) {
 	options := options.Find().SetLimit(limit).SetSkip(skip)
 	cursor, err := r.Collection.Find(context.Background(), bson.M{}, options)
 	if err != nil {

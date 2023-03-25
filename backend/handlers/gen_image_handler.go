@@ -1,69 +1,171 @@
 package handlers
 
 import (
-	"context"
+	"bytes"
 	"encoding/json"
 	"io"
 	"net/http"
+	"os"
 
-	"github.com/BlaynDrew414/dalle_image_app/backend/db"
 	"github.com/BlaynDrew414/dalle_image_app/backend/db/repo"
+	"github.com/BlaynDrew414/dalle_image_app/backend/models"
 	"github.com/gin-gonic/gin"
-	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
+type GenerateRequest struct {
+    Prompt string `json:"prompt"`
+    NumImages int `json:"n"`
+    Size string `json:"size"`
+}
+
+type GenerateResponse struct {
+    Created int64 `json:"created"`
+    Data []struct {
+        URL string `json:"url"`
+    } `json:"data"`
+}
+
 type GenerateImageRequestBody struct {
-	Description string `json:"description"`
+    Description string `json:"description"`
 }
 
 type GenerateImageResponseBody struct {
-	ImageUrl string `json:"image_url"`
+    ImageUrls []string `json:"image_urls"`
 }
 
-func GenerateImageHandler(imageRepo *repo.ImageRepository) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		// read request body
-		requestBodyBytes, err := io.ReadAll(c.Request.Body)
-		if err != nil {
-			c.AbortWithError(http.StatusBadRequest, err)
-			return
-		}
+func GenerateImage(prompt string, imageRepo repo.ImageRepository) ([]string, error) {
+    // Create a new GenerateRequest with the necessary fields
+    req := GenerateRequest{
+        Prompt: prompt,
+        NumImages: 1,
+        Size: "512x512",
+    }
 
-		// parse request body
-		var requestBody GenerateImageRequestBody
-		err = json.Unmarshal(requestBodyBytes, &requestBody)
-		if err != nil {
-			c.AbortWithError(http.StatusBadRequest, err)
-			return
-		}
+    // Marshal the request to JSON
+    reqBody, err := json.Marshal(req)
+    if err != nil {
+        return nil, err
+    }
 
-		// generate image
-		imageBytes, err := GenerateImage(requestBody.Description)
-		if err != nil {
-			c.AbortWithError(http.StatusInternalServerError, err)
-			return
-		}
+    // Create a new HTTP request
+    reqURL := "https://api.openai.com/v1/images/generations"
+    reqMethod := "POST"
+    reqHeaders := map[string]string{
+        "Content-Type":        "application/json",
+        "Authorization":       "Bearer " + os.Getenv("OPENAI_API_KEY"),
+        "OpenAI-Organization": os.Getenv("OPENAI_ORG_ID"),
+    }
+    reqBodyReader := bytes.NewReader(reqBody)
 
-		// insert image into MongoDB collection
-		client, err := db.ConnectToDB()
-		if err != nil {
-			c.AbortWithError(http.StatusInternalServerError, err)
-			return
-		}
-		defer client.Disconnect(context.Background())
+    httpReq, err := http.NewRequest(reqMethod, reqURL, reqBodyReader)
+    if err != nil {
+        return nil, err
+    }
+    for k, v := range reqHeaders {
+        httpReq.Header.Set(k, v)
+    }
 
-		collection := client.Database("dalle_image_app").Collection("images")
-		result, err := collection.InsertOne(context.Background(), bson.M{"image": imageBytes})
-		if err != nil {
-			c.AbortWithError(http.StatusInternalServerError, err)
-			return
-		}
+    // Send the HTTP request
+    client := &http.Client{}
+    resp, err := client.Do(httpReq)
+    if err != nil {
+        return nil, err
+    }
+    defer resp.Body.Close()
 
-		// return response
-		responseBody := GenerateImageResponseBody{ImageUrl: result.InsertedID.(primitive.ObjectID).Hex()}
-		c.JSON(http.StatusOK, responseBody)
+    // Read the HTTP response body
+    respBody, err := io.ReadAll(resp.Body)
+    if err != nil {
+        return nil, err
+    }
 
-	}
+    // Unmarshal the response JSON to a GenerateResponse struct
+    var respData GenerateResponse
+    if err := json.Unmarshal(respBody, &respData); err != nil {
+        return nil, err
+    }
+
+    // Extract the image URLs and data from the response data
+    var imageUrls []string
+    var imageDataList []*models.Image
+    for _, imageData := range respData.Data {
+        imageUrls = append(imageUrls, imageData.URL)
+        // Download image data from URL
+        resp, err := http.Get(imageData.URL)
+        if err != nil {
+            return nil, err
+        }
+        defer resp.Body.Close()
+
+        // Read image data from response body
+        imageDataBytes, err := io.ReadAll(resp.Body)
+        if err != nil {
+            return nil, err
+        }
+
+        // Create new image record
+        image := &models.Image{ID: primitive.NewObjectID().Hex(), Image: imageDataBytes}
+
+        // Save image to database
+        if err := imageRepo.InsertImage(image); err != nil {
+            return nil, err
+        }
+        imageDataList = append(imageDataList, image)
+    }
+
+    return imageUrls, nil
+}
+
+
+
+
+func GenerateImageHandler(imageRepo repo.ImageRepository) gin.HandlerFunc {
+    return func(c *gin.Context) {
+        // Read request body
+        var requestBody GenerateImageRequestBody
+        if err := c.BindJSON(&requestBody); err != nil {
+            c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+            return
+        }
+
+        // Generate images
+        imageUrls, err := GenerateImage(requestBody.Description, imageRepo)
+        if err != nil {
+            c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+            return
+        }
+
+        // Save images to database
+        for _, url := range imageUrls {
+            // Download image data from URL
+            resp, err := http.Get(url)
+            if err != nil {
+                c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+                return
+            }
+            defer resp.Body.Close()
+
+            // Read image data from response body
+            imageData, err := io.ReadAll(resp.Body)
+            if err != nil {
+                c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+                return
+            }
+
+            // Create new image record
+            image := &models.Image{ID: primitive.NewObjectID().Hex(), Image: imageData}
+
+            // Save image to database
+            if err := imageRepo.InsertImage(image); err != nil {
+                c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+                return
+            }
+        }
+
+        // Return response
+        responseBody := GenerateImageResponseBody{ImageUrls: imageUrls}
+        c.JSON(http.StatusOK, responseBody)
+    }
 }
 
