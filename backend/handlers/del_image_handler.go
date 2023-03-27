@@ -19,7 +19,7 @@ func DeleteImageHandler(imageRepo repo.ImageRepository) gin.HandlerFunc {
 		}
 
 		// Delete image from database
-		err = imageRepo.DeleteImageByID(id)
+		err = imageRepo.DeleteImageByID(id.Hex())
 		if err != nil {
 			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
@@ -29,10 +29,3 @@ func DeleteImageHandler(imageRepo repo.ImageRepository) gin.HandlerFunc {
 		c.JSON(http.StatusOK, gin.H{"message": "Image deleted successfully"})
 	}
 }
-
-
-
-
-
-
-

@@ -39,8 +39,13 @@ func (r *ImageRepository) GetImageByID(id string) (*models.Image, error) {
 	return &image, nil
 }
 
-func (r *ImageRepository) DeleteImageByID(id primitive.ObjectID) error {
-	_, err := r.Collection.DeleteOne(context.Background(), bson.M{"_id": id})
+func (r *ImageRepository) DeleteImageByID(id string) error {
+	objID, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return err
+	}
+
+	_, err = r.Collection.DeleteOne(context.Background(), bson.M{"_id": objID})
 	return err
 }
 
