@@ -61,7 +61,13 @@ func GetAllImagesHandler(imageRepo *repo.ImageRepository) gin.HandlerFunc {
             return
         }
 
-        // return the images as a JSON array
-        c.JSON(http.StatusOK, images)
+        // set the Content-Type header to image/png
+        c.Header("Content-Type", "image/png")
+
+        // write the images to the response body
+        for _, image := range images {
+            c.Writer.Write(image.Image)
+        }
     }
 }
+
