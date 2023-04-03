@@ -54,7 +54,7 @@ func GetAllImagesHandler(imageRepo *repo.ImageRepository) gin.HandlerFunc {
             skip = 0
         }
 
-        // get all images from the image repository
+        // get All images from the repository
         images, err := imageRepo.GetALLImages(limit, skip)
         if err != nil {
             c.AbortWithError(http.StatusInternalServerError, err)

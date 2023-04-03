@@ -13,30 +13,10 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-type GenerateRequest struct {
-    Prompt string `json:"prompt"`
-    NumImages int `json:"n"`
-    Size string `json:"size"`
-}
-
-type GenerateResponse struct {
-    Created int64 `json:"created"`
-    Data []struct {
-        URL string `json:"url"`
-    } `json:"data"`
-}
-
-type GenerateImageRequestBody struct {
-    Description string `json:"description"`
-}
-
-type GenerateImageResponseBody struct {
-    ImageUrls []string `json:"image_urls"`
-}
 
 func GenerateImage(prompt string, imageRepo repo.ImageRepository) ([]string, error) {
 	// Create a new GenerateRequest with the necessary fields
-	req := GenerateRequest{
+	req := models.GenerateRequest{
 		Prompt:    prompt,
 		NumImages: 1,
 		Size:      "512x512",
@@ -81,7 +61,7 @@ func GenerateImage(prompt string, imageRepo repo.ImageRepository) ([]string, err
 	}
 
 	// Unmarshal the response JSON to a GenerateResponse struct
-	var respData GenerateResponse
+	var respData models.GenerateResponse
 	if err := json.Unmarshal(respBody, &respData); err != nil {
 		return nil, err
 	}
@@ -128,7 +108,7 @@ func GenerateImage(prompt string, imageRepo repo.ImageRepository) ([]string, err
 func GenerateImageHandler(imageRepo repo.ImageRepository) gin.HandlerFunc {
     return func(c *gin.Context) {
         // Read request body
-        var requestBody GenerateImageRequestBody
+        var requestBody models.GenerateImageRequestBody
         if err := c.BindJSON(&requestBody); err != nil {
             c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
             return
@@ -143,7 +123,7 @@ func GenerateImageHandler(imageRepo repo.ImageRepository) gin.HandlerFunc {
         }
 
         // Return response
-        responseBody := GenerateImageResponseBody{ImageUrls: imageUrls}
+        responseBody := models.GenerateImageResponseBody{ImageUrls: imageUrls}
         c.JSON(http.StatusOK, responseBody)
     }
 }

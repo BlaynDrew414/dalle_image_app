@@ -22,7 +22,7 @@ func main() {
     defer client.Disconnect(context.Background())
     db := client.Database("dalle_image_app")
 
-    // Ping the Mongo database
+    // Ping Mongo database
     ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	if err := client.Ping(ctx, nil); err != nil {
@@ -36,7 +36,7 @@ func main() {
     // Create a new gin router
     router := handlers.SetupRouter(imageRepo)
 
-    // Start the server
+    // Start server
     port := os.Getenv("PORT")
     if port == "" {
         port = "8080"

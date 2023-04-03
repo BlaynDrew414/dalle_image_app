@@ -18,3 +18,24 @@ type Image struct {
 	Image  []byte `bson:"image"`
 	Prompt string `bson:"prompt"`
 }
+
+type GenerateRequest struct {
+    Prompt string `json:"prompt"`
+    NumImages int `json:"n"`
+    Size string `json:"size"`
+}
+
+type GenerateResponse struct {
+    Created int64 `json:"created"`
+    Data []struct {
+        URL string `json:"url"`
+    } `json:"data"`
+}
+
+type GenerateImageRequestBody struct {
+    Description string `json:"description"`
+}
+
+type GenerateImageResponseBody struct {
+    ImageUrls []string `json:"image_urls"`
+}
