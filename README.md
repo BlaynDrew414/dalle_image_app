@@ -1,6 +1,10 @@
 DALL-E Image App
 This app uses the DALL-E neural network with a Go backend and Mongo database to generate and store images from text descriptions. Users can input a text description, and the DALL-E model will generate an image based on that description. 
 
+Images are stored into a database and can be viewed either singularly, or in their entirety. 
+
+Images may be deleted one by one.
+
 Installation
 To install and run the app, follow these steps:
 
